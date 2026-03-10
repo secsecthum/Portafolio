@@ -5,7 +5,7 @@ services:
   mariadb:
     image: mariadb:11
     container_name: espocrm-db
-    restart: always  # Reinicio automático si el servidor se reinicia o el proceso falla
+    restart: always
     env_file: .env
     environment:
       MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -16,6 +16,13 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - crm-network
+    # Healthcheck real para MariaDB 11
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # --- APLICACIÓN CRM ---
   espocrm:
@@ -23,6 +30,12 @@ services:
     container_name: espocrm
     restart: always
     env_file: .env
+    # Cambiado: Ahora chequea si el servidor web interno responde
+    healthcheck:
+      test: ["CMD-SHELL", "php -v || exit 1"] 
+      interval: 30s
+      timeout: 10s
+      retries: 3
     environment:
       ESPOCRM_DATABASE_HOST: mariadb
       ESPOCRM_DATABASE_USER: ${MYSQL_USER}
@@ -31,7 +44,8 @@ services:
     volumes:
       - espocrm_data:/var/www/html
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy # <--- Crucial: Espera a que la DB esté sana
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.crm.rule=Host(`${DOMAIN}`)"
@@ -77,7 +91,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.entrypoints=web,websecure"
       - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
       - "traefik.docker.network=crm-network"
@@ -96,7 +110,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`monitor.${DOMAIN}`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.entrypoints=web,websecure"
       - "traefik.http.routers.grafana.tls.certresolver=myresolver"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       - "traefik.docker.network=crm-network"

@@ -37,7 +37,9 @@ services:
       - "traefik.http.routers.crm.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.crm.entrypoints=websecure"
       - "traefik.http.routers.crm.tls.certresolver=myresolver"
-      # Redirección forzada de HTTP a HTTPS
+      # EspoCRM (Apache) corre en el 80
+      - "traefik.http.services.crm.loadbalancer.server.port=80"
+      # Redirección HTTP a HTTPS
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.routers.crm-http.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.crm-http.entrypoints=web"
@@ -52,7 +54,7 @@ services:
            docker-php-entrypoint apache2-foreground"
 
   traefik:
-    image: traefik:v3.0
+    image: traefik:v2.11
     container_name: traefik
     restart: always
     command:
@@ -84,6 +86,8 @@ services:
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
       - "traefik.http.routers.prometheus.entrypoints=websecure"
       - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
+      # Puerto interno de Prometheus
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
     networks:
       - crm-network
 
@@ -99,6 +103,8 @@ services:
       - "traefik.http.routers.grafana.rule=Host(`monitor.${DOMAIN}`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls.certresolver=myresolver"
+      # Puerto interno de Grafana
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:

@@ -1,0 +1,39 @@
+# 🛡️ Linux Blue Team Security Scripts
+
+Colección de **scripts en Bash** orientados a **análisis defensivo, detección de anomalías, auditoría de autenticación y evaluación de riesgos de escalada de privilegios en sistemas Linux**.
+
+Este repositorio funciona como un **Blue Team Host Toolkit**, diseñado para ofrecer:
+- 🔍 Visibilidad rápida del sistema
+- 🧠 Contexto y explicación de cada hallazgo
+- 🚨 Detección temprana de comportamiento anómalo
+- 🛡️ Soporte para hardening e Incident Response
+
+Todos los scripts priorizan:
+- Salida **visual y organizada**
+- Clasificación de riesgo (**LOW / MED / HIGH**)
+- Interpretación clara de los resultados
+
+---
+
+## 📂 Estructura del proyecto
+
+```text
+linux/
+├── privesc-linux-audit/        # Auditoría de posibles escaladas de privilegios
+│   └── privesc-linux-audit.sh
+│
+├── defensive-auth/             # Auditoría defensiva de autenticación y logs
+│   └── defensive-auth.sh
+│
+├── blue-team-eye/              # Situational awareness del host (visión global)
+│   └── blue-team-eye.sh
+│
+├── anomaly-detection/          # Detección activa de anomalías
+│   └── anomaly-detection.sh
+│
+├── baseline/                   # Baseline y detección de cambios
+│   ├── baseline-linux-create.sh
+│   ├── baseline-comparer.sh
+│   └── baseline_data/
+│
+└── reports/                    # Evidencias y salidas de auditoría

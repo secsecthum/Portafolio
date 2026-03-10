@@ -1,7 +1,6 @@
 version: "3.9"
 
 services:
-
   mariadb:
     image: mariadb:11
     container_name: espocrm-db
@@ -37,12 +36,15 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.crm.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.crm.entrypoints=websecure"
-      - "traefik.http.routers.crm.tls=true"
+      - "traefik.http.routers.crm.tls.certresolver=myresolver"
+      # Redirección forzada de HTTP a HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.crm-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.crm-http.entrypoints=web"
+      - "traefik.http.routers.crm-http.middlewares=redirect-to-https"
     networks:
       - crm-network
-    ports:
-      - "8080:80"
-  # ⬅ comando para arreglar permisos antes de iniciar Apache
+    # No necesitas exponer el puerto 8080 en la VPS, Traefik lo maneja internamente
     command: >
       sh -c "chown -R 33:33 /var/www/html &&
            find /var/www/html -type d -exec chmod 775 {} + &&
@@ -55,15 +57,19 @@ services:
     restart: always
     command:
       - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--api.insecure=true"  # para dashboard temporal
+      # Configuración de Certificados
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${EMAIL_LETSENCRYPT}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
       - "443:443"
-      - "8088:8080"   # dashboard Traefik
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/letsencrypt/acme.json
     networks:
       - crm-network
 
@@ -73,10 +79,13 @@ services:
     restart: always
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
     networks:
       - crm-network
-    ports:
-      - "9090:9090"
 
   grafana:
     image: grafana/grafana
@@ -85,12 +94,15 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`monitor.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=myresolver"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
       - crm-network
-    ports:
-      - "3000:3000"
 
   loki:
     image: grafana/loki

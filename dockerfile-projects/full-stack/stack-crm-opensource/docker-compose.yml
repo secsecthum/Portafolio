@@ -1,7 +1,4 @@
-version: "3.9"
-
 services:
-  # --- BASE DE DATOS ---
   mariadb:
     image: mariadb:11
     container_name: espocrm-db
@@ -16,26 +13,18 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - crm-network
-    # Healthcheck real para MariaDB 11
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      # Usamos mysqladmin para verificar que el servidor RESPONDE a conexiones
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  # --- APLICACIÓN CRM ---
+      retries: 10         # Más intentos para aguantar el reinicio del entrypoint
+      start_period: 60s   # Un minuto de gracia para la inicialización pesada
   espocrm:
     image: espocrm/espocrm
     container_name: espocrm
     restart: always
     env_file: .env
-    # Cambiado: Ahora chequea si el servidor web interno responde
-    healthcheck:
-      test: ["CMD-SHELL", "php -v || exit 1"] 
-      interval: 30s
-      timeout: 10s
-      retries: 3
     environment:
       ESPOCRM_DATABASE_HOST: mariadb
       ESPOCRM_DATABASE_USER: ${MYSQL_USER}
@@ -45,18 +34,32 @@ services:
       - espocrm_data:/var/www/html
     depends_on:
       mariadb:
-        condition: service_healthy # <--- Crucial: Espera a que la DB esté sana
+        condition: service_healthy
+    # FIX HEALTHCHECK: Usamos curl porque Espo tiene un servidor web interno
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 160s # Damos tiempo a la instalación inicial
+    networks:
+      - crm-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.crm.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.crm.entrypoints=web,websecure"
       - "traefik.http.routers.crm.tls.certresolver=myresolver"
-      - "traefik.http.services.crm.loadbalancer.server.port=80"
-      - "traefik.docker.network=crm-network"
+  
+  espocrm-exporter:
+    image: lusotycoon/apache-exporter
+    container_name: espocrm-exporter
+    command:
+      - '--scrape_uri=http://espocrm/server-status?auto'
     networks:
       - crm-network
+    depends_on:
+      - espocrm
 
-  # --- PROXY INVERSO (SSL y Tráfico) ---
   traefik:
     image: traefik:v2.11
     container_name: traefik
@@ -64,10 +67,10 @@ services:
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=crm-network"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # Configuración ACME (Let's Encrypt)
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=${EMAIL_LETSENCRYPT}"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
@@ -75,58 +78,70 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Permite a Traefik leer otros contenedores
-      - ./traefik/acme.json:/letsencrypt/acme.json # Persistencia de certificados SSL
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/letsencrypt/acme.json
     networks:
       - crm-network
 
-  # --- MONITOREO (Métricas) ---
   prometheus:
     image: prom/prometheus
     container_name: prometheus
-    restart: always
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus # Volumen persistente para métricas históricas
+      - prometheus_data:/prometheus
+    networks:
+      - crm-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
-      - "traefik.http.routers.prometheus.entrypoints=web,websecure"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
       - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
-      - "traefik.docker.network=crm-network"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/tmp/loki
     networks:
       - crm-network
 
-  # --- VISUALIZACIÓN ---
+  # NUEVO: Promtail para enviar logs de Docker a Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    # Necesitas crear este archivo simple de configuración
+    networks:
+      - crm-network
+
   grafana:
     image: grafana/grafana
     container_name: grafana
-    restart: always
     env_file: .env
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`monitor.${DOMAIN}`)"
-      - "traefik.http.routers.grafana.entrypoints=web,websecure"
-      - "traefik.http.routers.grafana.tls.certresolver=myresolver"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-      - "traefik.docker.network=crm-network"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
       - crm-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`monitor.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=myresolver"
 
-# --- RED PRIVADA ---
 networks:
   crm-network:
     driver: bridge
 
-# --- VOLÚMENES PERSISTENTES ---
 volumes:
   db_data:
   espocrm_data:
   grafana_data:
-  prometheus_data: # Añadido para no perder métricas al reiniciar Prometheus
+  prometheus_data:
+  loki_data:

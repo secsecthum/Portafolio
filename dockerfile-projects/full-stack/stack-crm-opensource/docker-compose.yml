@@ -96,7 +96,10 @@ services:
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
       - "traefik.http.routers.prometheus.entrypoints=websecure"
       - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
-
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml' # <--- OBLIGATORIO si cambias el comando
+      - '--storage.tsdb.path=/prometheus'             # <--- OBLIGATORIO para persistir datos
+      - '--storage.tsdb.retention.time=15d'
   loki:
     image: grafana/loki:latest
     container_name: loki

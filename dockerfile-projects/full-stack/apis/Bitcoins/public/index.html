@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOLD TERMINAL | Institutional Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+        
+        :root {
+            --gold: #d4af37;
+            --gold-glow: rgba(212, 175, 55, 0.3);
+            --silver: #bdc3c7;
+            --deep-dark: #020406;
+        }
+
+        body {
+            background-color: var(--deep-dark);
+            background-image: 
+                radial-gradient(circle at 0% 0%, #0f1115 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, #080a0c 0%, transparent 50%);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .gold-gradient {
+            background: linear-gradient(135deg, #d4af37, #f9e29d);
+            background-clip: text; /* Propiedad estándar */
+            -webkit-background-clip: text; /* Para compatibilidad con Chrome/Safari */
+            -webkit-text-fill-color: transparent;
+        }  
+
+        .glass {
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(212, 175, 55, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass:hover {
+            border-color: rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 20px var(--gold-glow);
+            transform: translateY(-2px);
+        }
+
+        .notif-item { border-left: 3px solid transparent; transition: 0.3s; }
+        .notif-gold { border-left-color: var(--gold); background: rgba(212, 175, 55, 0.05); }
+        .notif-silver { border-left-color: var(--silver); background: rgba(189, 195, 199, 0.05); }
+
+        .gold-glow-text { text-shadow: 0 0 10px var(--gold-glow); }
+        .silver-glow-text { text-shadow: 0 0 10px rgba(189, 195, 199, 0.2); }
+
+        select { appearance: none; background-image: none; cursor: pointer; }
+        
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--deep-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div class="text-center md:text-left">
+                <h1 id="txt-main-title" class="text-4xl font-black tracking-tighter gold-gradient">TERMINAL GOLD v2.0</h1>
+                <p id="txt-main-subtitle" class="text-gray-500 font-mono text-[10px] tracking-[0.3em] uppercase">Sistema de Inteligencia de Mercado</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="glass px-3 py-1.5 rounded-xl border-white/5 flex items-center gap-2">
+                    <i data-lucide="languages" class="w-3 h-3 text-gray-500"></i>
+                    <select id="lang-selector" onchange="toggleLanguage()" class="bg-transparent text-[10px] font-bold text-gray-300 outline-none uppercase">
+                        <option value="es">ESPAÑOL</option>
+                        <option value="en">ENGLISH</option>
+                    </select>
+                </div>
+
+                <div class="relative group">
+                    <button class="glass p-3 rounded-2xl relative">
+                        <i data-lucide="bell" id="bell-icon" class="w-5 h-5 text-gray-400 transition-colors"></i>
+                        <span id="notif-badge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                    </button>
+                    
+                    <div class="absolute right-0 mt-4 w-80 glass rounded-3xl p-5 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 id="txt-notif-title" class="text-[10px] font-black text-gray-500 tracking-widest uppercase">Historial de Eventos</h4>
+                            <span class="text-[8px] px-2 py-0.5 bg-white/5 rounded-full text-gray-600 font-mono">LIVE</span>
+                        </div>
+                        <div id="notifications-feed" class="space-y-3 max-h-72 overflow-y-auto pr-1">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-500 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-[#d4af37]"></span>
+                    </span>
+                    <span id="txt-live-status" class="text-[10px] font-bold tracking-widest text-gray-300 uppercase italic">Conectado</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10">
+            <div class="glass p-6 rounded-[2rem] flex flex-col items-center justify-center text-center">
+                <span id="txt-fg-label" class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-4">Sentimiento Global</span>
+                <div id="fg-value" class="text-6xl font-black mb-1 gold-glow-text">--</div>
+                <div id="fg-classification" class="text-[10px] font-mono p-1 px-4 rounded-full bg-white/5 text-[#d4af37]">...</div>
+            </div>
+
+            <div class="lg:col-span-3 glass p-6 rounded-[2rem]">
+                <div class="flex items-center gap-2 mb-6">
+                    <i data-lucide="cpu" class="text-[#d4af37] w-4 h-4"></i>
+                    <h2 id="txt-ai-title" class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Predicciones Inteligencia Artificial (24H)</h2>
+                </div>
+                <div id="predictions-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    </div>
+            </div>
+        </div>
+
+        <div id="cards-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-10">
+            </div>
+
+        <div class="glass p-8 rounded-[2.5rem] relative">
+            <div class="flex justify-between items-center mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="bg-[#d4af37] w-1 h-6 rounded-full shadow-[0_0_10px_var(--gold)]"></div>
+                    <h2 id="txt-chart-title" class="text-xl font-bold tracking-tight text-white">Inteligencia Visual de Mercado</h2>
+                </div>
+                <div class="flex gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500/20 border border-green-500/50 animate-pulse"></span>
+                    <span class="text-[9px] font-mono text-gray-500 uppercase">Actualización en Tiempo Real</span>
+                </div>
+            </div>
+            <div class="h-[400px]">
+                <canvas id="marketChart"></canvas>
+            </div>
+        </div>
+        
+        <footer class="mt-10 pb-10 text-center text-[9px] text-gray-700 tracking-[0.4em] uppercase">
+            &copy; 2026 Institutional Gold Terminal &bull; Powered by CoinGecko API
+        </footer>
+    </div>
+
+    <script>
+        let chartInstance = null;
+        let currentLang = 'es';
+
+        const i18n = {
+            es: {
+                mainTitle: "TERMINAL GOLD v2.0",
+                mainSubtitle: "Sistema de Inteligencia de Mercado",
+                liveStatus: "Conectado",
+                notifTitle: "Historial de Eventos",
+                fgLabel: "Sentimiento Global",
+                aiTitle: "Predicciones Inteligencia Artificial (24H)",
+                chartTitle: "Inteligencia Visual de Mercado",
+                volatility: "VOLATILIDAD",
+                movement: "MOVIMIENTO",
+                sentiment: { Bullish: "ALCISTA", Bearish: "BAJISTA" }
+            },
+            en: {
+                mainTitle: "GOLD TERMINAL v2.0",
+                mainSubtitle: "Market Intelligence System",
+                liveStatus: "Live Connected",
+                notifTitle: "Event History",
+                fgLabel: "Global Sentiment",
+                aiTitle: "Artificial Intelligence Predictions (24H)",
+                chartTitle: "Visual Market Intelligence",
+                volatility: "VOLATILITY",
+                movement: "MOVEMENT",
+                sentiment: { Bullish: "BULLISH", Bearish: "BEARISH" }
+            }
+        };
+
+        function toggleLanguage() {
+            currentLang = document.getElementById('lang-selector').value;
+            updateTexts();
+            fetchData(); // Refrescar para aplicar traducciones en cards si es necesario
+            fetchAnalytics();
+        }
+
+        function updateTexts() {
+            const t = i18n[currentLang];
+            document.getElementById('txt-main-title').innerText = t.mainTitle;
+            document.getElementById('txt-main-subtitle').innerText = t.mainSubtitle;
+            document.getElementById('txt-live-status').innerText = t.liveStatus;
+            document.getElementById('txt-notif-title').innerText = t.notifTitle;
+            document.getElementById('txt-fg-label').innerText = t.fgLabel;
+            document.getElementById('txt-ai-title').innerText = t.aiTitle;
+            document.getElementById('txt-chart-title').innerText = t.chartTitle;
+        }
+
+        async function fetchAnalytics() {
+            try {
+                const res = await fetch('/api/v1/analytics');
+                const data = await res.json();
+                if (data.success) {
+                    renderAnalytics(data);
+                    renderNotifications(data.notifications);
+                }
+            } catch (err) { console.error("Err Analytics:", err); }
+        }
+
+        function renderNotifications(notifs) {
+            const feed = document.getElementById('notifications-feed');
+            const badge = document.getElementById('notif-badge');
+            const bell = document.getElementById('bell-icon');
+            
+            feed.innerHTML = '';
+            const hasGold = notifs.some(n => n.type === 'gold');
+            
+            if (notifs.length > 0) {
+                badge.classList.remove('hidden');
+                bell.className = hasGold ? 'w-5 h-5 gold-glow-text gold-text' : 'w-5 h-5 silver-glow-text silver-text';
+                // Cambiamos colores reales de iconos lucide
+                bell.style.color = hasGold ? '#d4af37' : '#bdc3c7';
+            }
+
+            notifs.forEach(n => {
+                const typeClass = n.type === 'gold' ? 'notif-gold' : 'notif-silver';
+                const titleColor = n.type === 'gold' ? 'text-[#d4af37]' : 'text-gray-400';
+                
+                feed.innerHTML += `
+                    <div class="notif-item ${typeClass} p-4 rounded-2xl mb-2">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[9px] font-black ${titleColor} uppercase tracking-tighter">${n.title}</span>
+                            <span class="text-[8px] text-gray-700 font-mono">${n.time}</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500 leading-relaxed font-medium">${n.msg}</p>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function renderAnalytics(data) {
+            const fg = data.fear_greed;
+            document.getElementById('fg-value').innerText = fg.value;
+            const fgClass = document.getElementById('fg-classification');
+            fgClass.innerText = fg.classification.toUpperCase();
+            
+            const val = parseInt(fg.value);
+            document.getElementById('fg-value').style.color = val < 40 ? '#ff4444' : val < 60 ? '#d4af37' : '#00ff88';
+
+            const container = document.getElementById('predictions-container');
+            container.innerHTML = '';
+            
+            Object.entries(data.predictions).slice(0, 3).forEach(([coin, p]) => {
+                const isBull = p.sentiment === 'Bullish';
+                const t = i18n[currentLang];
+                container.innerHTML += `
+                    <div class="bg-white/[0.02] border border-white/5 rounded-3xl p-5 text-center transition-all hover:bg-white/[0.04]">
+                        <div class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">${coin}</div>
+                        <div class="text-2xl font-black text-white tracking-tighter mb-1">$${p.predicted_24h.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                        <div class="text-[9px] font-black ${isBull ? 'text-green-500' : 'text-red-500'} uppercase flex items-center justify-center gap-1">
+                            ${t.sentiment[p.sentiment]} <i data-lucide="${isBull ? 'trending-up' : 'trending-down'}" class="w-2.5 h-2.5"></i>
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        async function fetchData() {
+            try {
+                const res = await fetch('/api/v1/bolsa');
+                const json = await res.json();
+                if (json.success) renderUI(json.market);
+            } catch (err) { console.error("Err Market:", err); }
+        }
+
+        function renderUI(market) {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+            const labels = []; const prices = [];
+
+            for (const [coin, data] of Object.entries(market)) {
+                labels.push(coin.split('-')[0].toUpperCase());
+                prices.push(data.usd);
+                const isPositive = (data.usd_24h_change || 0) >= 0;
+
+                const card = document.createElement('div');
+                card.className = 'glass p-5 rounded-3xl flex flex-col justify-between h-36 relative overflow-hidden';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start z-10">
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-tighter">${coin}</span>
+                        <div class="${isPositive ? 'text-green-500' : 'text-red-500'} bg-black/40 p-1 rounded-lg">
+                            <i data-lucide="${isPositive ? 'arrow-up-right' : 'arrow-down-right'}" class="w-3 h-3"></i>
+                        </div>
+                    </div>
+                    <div class="z-10">
+                        <div class="text-2xl font-black tracking-tighter text-white">$${data.usd.toLocaleString()}</div>
+                        <div class="text-[10px] font-mono font-bold mt-1 ${isPositive ? 'text-green-500' : 'text-red-500'}">
+                            ${isPositive ? '▲' : '▼'} ${Math.abs(data.usd_24h_change || 0).toFixed(2)}%
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-2 -right-2 opacity-[0.03] text-white">
+                         <i data-lucide="activity" class="w-16 h-16"></i>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+            renderChart(labels, prices);
+            lucide.createIcons();
+        }
+
+        function renderChart(labels, prices) {
+            const ctx = document.getElementById('marketChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(212, 175, 55, 0.2)');
+            gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: prices,
+                        borderColor: '#d4af37',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.45,
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#020406',
+                        pointBorderColor: '#d4af37',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 9,
+                        pointHoverBackgroundColor: '#d4af37'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(2, 4, 6, 0.95)',
+                            titleColor: '#d4af37',
+                            titleFont: { size: 12, weight: 'bold' },
+                            bodyFont: { family: 'Inter' },
+                            borderColor: 'rgba(212, 175, 55, 0.2)',
+                            borderWidth: 1,
+                            padding: 15,
+                            displayColors: false,
+                            callbacks: {
+                                label: (ctx) => ` PRICE: $${ctx.raw.toLocaleString()}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.02)' }, ticks: { color: '#444', font: { size: 9 } } },
+                        x: { grid: { display: false }, ticks: { color: '#444', font: { size: 9, weight: 'bold' } } }
+                    }
+                }
+            });
+        }
+
+        // Inicialización
+        updateTexts();
+        fetchData();
+        fetchAnalytics();
+        setInterval(() => { fetchData(); fetchAnalytics(); }, 30000);
+    </script>
+</body>
+</html>

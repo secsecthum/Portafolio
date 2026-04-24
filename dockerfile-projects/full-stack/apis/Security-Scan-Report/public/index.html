@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHIELD_SCAN // Intelligence Operations Center</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z'/></svg>">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono:wght@300;500&display=swap');
+        
+        :root {
+            --bg-deep: #030303;
+            --panel: #0a0a0a;
+            --gold: #d4af37;
+            --gold-muted: rgba(212, 175, 55, 0.2);
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-deep);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
+                url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .premium-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .premium-panel:hover {
+            border-color: rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        /* Línea de escaneo láser */
+        .scan-anim {
+            background: linear-gradient(to bottom, transparent, var(--gold), transparent);
+            width: 100%;
+            height: 2px;
+            position: absolute;
+            left: 0;
+            top: -2px;
+            opacity: 0;
+            z-index: 10;
+        }
+
+        .scanning .scan-anim {
+            animation: scanning 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.8;
+        }
+
+        @keyframes scanning {
+            0% { top: 0%; opacity: 0; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--gold-muted); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+        .input-glow:focus {
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.1);
+        }
+    </style>
+</head>
+<body class="p-4 lg:p-8">
+
+    <div class="max-w-[1700px] mx-auto space-y-6">
+        
+        <header class="flex flex-col md:flex-row gap-6 items-center justify-between pb-6 border-b border-white/5">
+            <div class="flex items-center gap-5">
+                <div class="p-3 bg-gradient-to-br from-yellow-600/20 to-transparent border border-yellow-500/30 rounded-xl">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-[#d4af37]"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-light tracking-[0.25em] text-white uppercase">Shield<span class="font-bold text-[#d4af37]">Scan</span></h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-widest mono">Node: Global_Secure_v4.0.1</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative w-full max-w-2xl">
+                <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <span class="text-[#d4af37] mono text-xs">READY > </span>
+                </div>
+                <input id="urlInput" type="text" placeholder="ENTER_TARGET_DOMAIN.COM" 
+                       class="w-full bg-black/40 border border-white/10 pl-24 pr-44 py-4 rounded-lg text-sm text-white mono focus:border-[#d4af37]/50 focus:outline-none transition-all input-glow">
+                <button id="btnScan" onclick="runScan()" 
+                        class="absolute right-2 top-2 bottom-2 bg-[#d4af37] hover:bg-[#b8962d] text-black px-6 rounded flex items-center gap-2 font-bold text-[11px] transition-all active:scale-95">
+                    EXECUTE <i data-lucide="play" class="w-3 h-3"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <div class="lg:col-span-3 space-y-6">
+                <div id="radarPanel" class="premium-panel p-6 rounded-2xl overflow-hidden">
+                    <div class="scan-anim"></div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-[11px] text-gray-400 font-bold tracking-widest uppercase">Risk_Vector</h2>
+                        <i data-lucide="activity" class="w-4 h-4 text-[#d4af37]"></i>
+                    </div>
+                    <div class="py-4">
+                        <canvas id="riskRadar"></canvas>
+                    </div>
+                    <div class="mt-6 flex justify-between items-end">
+                        <div>
+                            <p class="text-[10px] text-gray-500 mb-1 uppercase">Threat_Level</p>
+                            <p id="riskValue" class="text-6xl font-light text-white tracking-tighter">00<span class="text-lg text-[#d4af37]">%</span></p>
+                        </div>
+                        <div id="riskStatus" class="mb-2 px-3 py-1 bg-white/5 border border-white/10 text-[10px] mono text-gray-400 uppercase">
+                            IDLE
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-panel p-6 rounded-2xl">
+                    <h2 class="text-[11px] text-gray-400 font-bold mb-4 tracking-widest uppercase flex items-center gap-2">
+                        <i data-lucide="layers" class="w-3 h-3 text-[#d4af37]"></i> Assets_Mapped
+                    </h2>
+                    <div id="subdomainList" class="space-y-2 max-h-[180px] overflow-y-auto pr-2 mono text-[11px]">
+                        <p class="text-gray-600 italic text-[10px]">No assets indexed.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-6 space-y-6">
+                <div class="premium-panel h-[500px] flex flex-col rounded-2xl border-t-2 border-t-[#d4af37]/50 overflow-hidden">
+                    <div class="px-5 py-3 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <div class="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/40"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/40"></div>
+                        </div>
+                        <span class="text-[10px] mono text-gray-500 uppercase tracking-widest">Core_Intelligence_Log</span>
+                    </div>
+                    <div id="terminal" class="flex-1 p-6 overflow-y-auto mono text-[12px] leading-relaxed space-y-2 bg-black/40 scrollbar-hide">
+                        <div class="text-[#d4af37]/60">>> System ready for target identification.</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="premium-panel p-5 rounded-xl">
+                        <h3 class="text-[10px] text-gray-400 font-bold mb-4 uppercase flex items-center justify-between tracking-widest">
+                            Sensitive_Paths <i data-lucide="folder-search" class="w-3 h-3 text-[#d4af37]"></i>
+                        </h3>
+                        <div id="dirList" class="space-y-2 min-h-[60px] mono text-[10px]">
+                            <div class="text-gray-600 italic">Pending analysis...</div>
+                        </div>
+                    </div>
+                    <div class="premium-panel p-5 rounded-xl">
+                        <h3 class="text-[10px] text-gray-400 font-bold mb-4 uppercase flex items-center justify-between tracking-widest">
+                            Security_Headers <i data-lucide="file-shield" class="w-3 h-3 text-[#d4af37]"></i>
+                        </h3>
+                        <div id="headerList" class="space-y-2 mono text-[10px]">
+                            <div class="h-1 w-full bg-white/5 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 space-y-6">
+                <div class="premium-panel p-6 rounded-2xl bg-gradient-to-b from-white/5 to-transparent">
+                    <h2 class="text-[11px] text-[#d4af37] font-bold mb-6 tracking-widest uppercase">Target_Metadata</h2>
+                    <div class="space-y-5">
+                        <div class="group">
+                            <label class="text-[9px] text-gray-500 block mb-1">IPV4_ADDRESS</label>
+                            <div id="dispIp" class="text-lg mono text-white group-hover:text-[#d4af37] transition-colors">0.0.0.0</div>
+                        </div>
+                        <div class="group">
+                            <label class="text-[9px] text-gray-500 block mb-1">SERVER_SOFTWARE</label>
+                            <div id="dispServ" class="text-lg mono text-white group-hover:text-[#d4af37] transition-colors">UNKNOWN</div>
+                        </div>
+                        <div class="group">
+                            <label class="text-[9px] text-gray-500 block mb-1">LATENCY_MS</label>
+                            <div id="dispLat" class="text-lg mono text-white group-hover:text-[#d4af37] transition-colors">0ms</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-panel p-6 rounded-2xl">
+                    <h2 class="text-[11px] text-gray-400 font-bold mb-4 tracking-widest uppercase flex items-center justify-between">
+                        Geographic_Origin <i data-lucide="map-pin" class="w-3 h-3 text-[#d4af37]"></i>
+                    </h2>
+                    <div class="aspect-square bg-black/60 rounded-xl border border-white/5 relative flex flex-col items-center justify-center overflow-hidden">
+                        <i data-lucide="globe" class="w-20 h-20 text-white/5 absolute animate-pulse"></i>
+                        <span id="geoStatus" class="text-[10px] mono text-[#d4af37]/60 z-10 uppercase tracking-tighter">Visualizing_Hop_Points...</span>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Inicialización de Gráfico Radar
+        const ctx = document.getElementById('riskRadar').getContext('2d');
+        let riskChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['DNS', 'HDR', 'DIR', 'SUB', 'LAT'],
+                datasets: [{
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                    borderColor: '#d4af37',
+                    borderWidth: 1,
+                    pointBackgroundColor: '#d4af37',
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255,255,255,0.05)' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        pointLabels: { color: '#666', font: { size: 9, family: 'JetBrains Mono' } },
+                        ticks: { display: false },
+                        suggestedMin: 0, suggestedMax: 100
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        function logTerminal(msg, type = 'default') {
+            const colors = {
+                default: 'text-gray-400',
+                gold: 'text-[#d4af37]',
+                danger: 'text-red-400',
+                success: 'text-emerald-400'
+            };
+            const term = document.getElementById('terminal');
+            const entry = document.createElement('div');
+            entry.className = `${colors[type]} animate-in fade-in slide-in-from-left-1 duration-300`;
+            entry.innerHTML = `<span class="opacity-30 mr-2">[${new Date().toLocaleTimeString()}]</span> > ${msg}`;
+            term.appendChild(entry);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        async function runScan() {
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+            
+            if(!url) {
+                logTerminal("ERROR: No target domain specified", "danger");
+                return;
+            }
+
+            // UI State: Iniciar Escaneo
+            document.getElementById('radarPanel').classList.add('scanning');
+            document.getElementById('btnScan').disabled = true;
+            document.getElementById('btnScan').innerText = "SCANNING...";
+            
+            logTerminal(`Initializing extraction sequence: ${url.toUpperCase()}`, "gold");
+            logTerminal("Establishing handshake with node clusters...", "default");
+
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                if (!response.ok) throw new Error("UPSTREAM_NODE_FAILURE");
+
+                const data = await response.json();
+                updateUI(data);
+
+            } catch (err) {
+                logTerminal(`CRITICAL_FAILURE: ${err.message}`, "danger");
+                console.error(err);
+            } finally {
+                document.getElementById('radarPanel').classList.remove('scanning');
+                document.getElementById('btnScan').disabled = false;
+                document.getElementById('btnScan').innerHTML = 'EXECUTE <i data-lucide="play" class="w-3 h-3"></i>';
+                lucide.createIcons();
+            }
+        }
+
+        function updateUI(data) {
+            // Actualizar Metadata
+            document.getElementById('dispIp').innerText = data.results.dns.details;
+            document.getElementById('dispServ').innerText = data.results.security.server || "N/A";
+            document.getElementById('dispLat').innerText = data.latency;
+            document.getElementById('riskValue').innerHTML = `${data.riskScore.toString().padStart(2, '0')}<span class="text-lg text-[#d4af37]">%</span>`;
+
+            // Status Badge
+            const status = document.getElementById('riskStatus');
+            if(data.riskScore > 30) {
+                status.innerText = "WARNING";
+                status.className = "mb-2 px-3 py-1 bg-red-500/10 border border-red-500/20 text-[10px] mono text-red-500 uppercase font-bold";
+            } else {
+                status.innerText = "STABLE";
+                status.className = "mb-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-[10px] mono text-emerald-500 uppercase font-bold";
+            }
+
+            // Radar Chart
+            riskChart.data.datasets[0].data = [
+                data.riskScore > 20 ? 80 : 30, // DNS
+                Object.values(data.results.security).filter(v => v === true).length * 25, // Headers
+                data.results.directories.found.length > 0 ? 90 : 10, // Directories
+                data.results.subdomains.count > 0 ? 70 : 20, // Subdomains
+                parseInt(data.latency) > 100 ? 80 : 40 // Latency
+            ];
+            riskChart.update();
+
+            // Subdominios
+            const subList = document.getElementById('subdomainList');
+            subList.innerHTML = data.results.subdomains.list.length > 0 
+                ? data.results.subdomains.list.map(s => `<div class="flex items-center gap-2 text-emerald-500/80 border-b border-white/5 py-1 tracking-tighter"><i data-lucide="hash" class="w-2 h-2"></i> ${s}</div>`).join('')
+                : '<p class="text-gray-600 italic">No assets detected.</p>';
+
+            // Directorios
+            const dirList = document.getElementById('dirList');
+            dirList.innerHTML = data.results.directories.found.length > 0
+                ? data.results.directories.found.map(d => `<div class="p-1 bg-red-500/5 border border-red-500/10 text-red-400 flex justify-between"><span>${d}</span><span class="opacity-50">EXPOSED</span></div>`).join('')
+                : '<div class="text-emerald-500/60 uppercase">Clearance: Level Alpha (No sensitive paths)</div>';
+
+            // Headers
+            const headList = document.getElementById('headerList');
+            headList.innerHTML = Object.entries(data.results.security).map(([k, v]) => {
+                if(k === 'server') return '';
+                return `<div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="text-gray-500 uppercase">${k}</span>
+                    <span class="${v ? 'text-emerald-400' : 'text-red-400'} font-bold">${v ? 'PASS' : 'FAIL'}</span>
+                </div>`;
+            }).join('');
+
+            document.getElementById('geoStatus').innerText = "LOCATION_VERIFIED";
+            document.getElementById('geoStatus').classList.add('text-emerald-500');
+
+            logTerminal(`Intelligence report generated for ${data.domain}`, "success");
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

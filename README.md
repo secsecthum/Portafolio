@@ -67,6 +67,7 @@ docker compose up -d
 Zero Credentials: Todas las claves sensibles se gestionan vía variables de entorno.
 
 Hardening: Los Dockerfiles utilizan multi-stage builds para reducir la superficie de ataque.
+![Snyk Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/secsecthum/Portafolio)
 
 Compliance: Diseños orientados a la normativa LGPD y protección de datos.
 

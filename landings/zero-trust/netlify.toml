@@ -1,0 +1,34 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Anti-Clickjacking: Nadie puede meter tu web en un iframe
+    X-Frame-Options = "DENY"
+
+    # Anti-XSS: Bloquea ejecución de scripts maliciosos inyectados
+    X-XSS-Protection = "1; mode=block"
+
+    # Anti-Sniffing: Evita que el navegador ignore el tipo de archivo enviado
+    X-Content-Type-Options = "nosniff"
+
+    # CSP (Content Security Policy): La defensa definitiva. 
+    # Solo permite estilos y scripts de tu propio dominio y de CDNs confiables (Google/Tailwind)
+    Content-Security-Policy = """
+      default-src 'self'; 
+      script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; 
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+      font-src 'self' https://fonts.gstatic.com; 
+      img-src 'self' https://images.unsplash.com data:; 
+      connect-src 'self' https://api.github.com;
+    """
+
+    # HSTS: Fuerza comunicación solo por HTTPS por 1 año
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # Privacy: No envía información de donde viene el usuario a otros links
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Hardware Control: Desactiva sensores que tu web no necesita
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"

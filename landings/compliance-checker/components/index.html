@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECSECTHUM // COMPLIANCE_CENTER</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500;700&display=swap');
+        body { background: #08080c; font-family: 'Fira Code', monospace; color: #94a3b8; overflow-x: hidden; }
+        .cyber-card { background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; transition: all 0.3s ease; position: relative; }
+        .cyber-card:hover { border-color: #7c3aed; box-shadow: 0 0 20px rgba(124, 58, 237, 0.1); }
+        .btn-glow { background: #7c3aed; box-shadow: 0 0 15px rgba(124, 58, 237, 0.4); position: relative; overflow: hidden; }
+        .btn-glow:hover { background: #8b5cf6; box-shadow: 0 0 25px rgba(124, 58, 237, 0.6); transform: translateY(-1px); }
+        .btn-glow:active { transform: translateY(1px); }
+        /* Animación de escaneo */
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(124, 58, 237, 0.5); animation: scan 3s linear infinite; display: none; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+    </style>
+</head>
+<body class="p-6 md:p-12">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-end mb-12 border-b border-violet-900/30 pb-6">
+            <div>
+                <div class="flex items-center gap-2 text-violet-500 mb-1">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <span class="text-[10px] tracking-[0.5em] font-bold uppercase">Compliance_Protocol_V2.0</span>
+                </div>
+                <h1 class="text-4xl font-black text-white tracking-tighter">SECSECTHUM_OS</h1>
+            </div>
+            <div class="hidden md:block text-right">
+                <p class="text-[10px] opacity-40 uppercase">Status: <span class="text-green-500">Encrypted</span></p>
+                <p class="text-[10px] text-violet-400 font-bold">LOCAL_ANALYSIS_MODE</p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-4 space-y-6">
+                <div class="cyber-card p-8 rounded-xl">
+                    <div id="scan-effect" class="scan-line"></div>
+                    <h2 class="text-sm font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="list-checks" class="w-4 h-4 text-violet-500"></i> System_Declaration
+                    </h2>
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <p class="text-[10px] text-violet-400 font-bold uppercase tracking-tighter">Identity_Access</p>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" id="mfa" class="w-4 h-4 bg-zinc-900 border-zinc-700 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-xs group-hover:text-white transition-colors">Multi-Factor Auth (MFA)</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" id="iam" class="w-4 h-4 bg-zinc-900 border-zinc-700 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-xs group-hover:text-white transition-colors">IAM Policies (RBAC)</span>
+                            </label>
+                        </div>
+                        <div class="pt-4 border-t border-zinc-800 space-y-3">
+                            <p class="text-[10px] text-violet-400 font-bold uppercase tracking-tighter">Data_Protection</p>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" id="encryption" class="w-4 h-4 bg-zinc-900 border-zinc-700 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-xs group-hover:text-white transition-colors">AES-256 Encryption</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" id="backups" class="w-4 h-4 bg-zinc-900 border-zinc-700 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-xs group-hover:text-white transition-colors">Encrypted Backups</span>
+                            </label>
+                        </div>
+                        <div class="pt-4 border-t border-zinc-800 space-y-3">
+                            <p class="text-[10px] text-violet-400 font-bold uppercase tracking-tighter">Network_Defense</p>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" id="waf" class="w-4 h-4 bg-zinc-900 border-zinc-700 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-xs group-hover:text-white transition-colors">WAF Deployment</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" id="logs" class="w-4 h-4 bg-zinc-900 border-zinc-700 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-xs group-hover:text-white transition-colors">SIEM Log Centralization</span>
+                            </label>
+                        </div>
+                        <button onclick="runAudit()" id="audit-btn" class="w-full mt-4 btn-glow text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] rounded-lg transition-all">
+                            Execute_Security_Scan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="cyber-card p-6 rounded-xl min-h-[300px] flex items-center justify-center">
+                        <canvas id="auditChart"></canvas>
+                    </div>
+                    <div class="cyber-card p-6 rounded-xl flex flex-col justify-center items-center text-center">
+                        <h3 class="text-[10px] mb-2 uppercase opacity-40 font-bold">Posture_Score</h3>
+                        <div id="score-display" class="text-8xl font-black text-white tracking-tighter">0%</div>
+                        <div id="status-label" class="mt-4 text-[10px] px-4 py-1.5 bg-zinc-800 rounded-full tracking-widest border border-zinc-700 uppercase font-bold text-zinc-500">Ready_To_Scan</div>
+                    </div>
+                </div>
+
+                <div class="cyber-card p-8 rounded-xl min-h-[250px]">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4 text-violet-500"></i> Audit_Report
+                        </h3>
+                        <div id="audit-id" class="text-[9px] opacity-30 font-mono">ID: N/A</div>
+                    </div>
+                    <div id="recommendations-container" class="space-y-3 font-mono">
+                        <p class="text-xs italic opacity-30">> Waiting for manual declaration input...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

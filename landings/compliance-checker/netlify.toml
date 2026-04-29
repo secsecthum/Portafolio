@@ -1,0 +1,27 @@
+[build]
+  publish = "." # O "dist"/"build" si usas React/Vite
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # 1. Protección contra Clickjacking
+    X-Frame-Options = "DENY"
+    
+    # 2. Protección contra XSS (Cross-Site Scripting)
+    X-XSS-Protection = "1; mode=block"
+    
+    # 3. Evitar el "sniffing" de tipos MIME
+    X-Content-Type-Options = "nosniff"
+    
+    # 4. Content Security Policy (CSP) - La más importante
+    # Solo permite scripts de tu dominio y fuentes de confianza.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://github.com; connect-src 'self' https://api.github.com;"
+    
+    # 5. HSTS (Fuerza HTTPS por 1 año)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    
+    # 6. Referrer Policy
+    Referrer-Policy = "no-referrer-when-downgrade"
+    
+    # 7. Permissions Policy (Deshabilita hardware innecesario)
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"

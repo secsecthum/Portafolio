@@ -1,0 +1,49 @@
+name: Snyk Security Scan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            service/Security-Scan-Report/package-lock.json
+            service/LGPD/package-lock.json
+            service/Bitcoins/package-lock.json
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      # 1. Escaneo de Código (SAST) - Analiza tu lógica en JS/Bash
+      - name: Snyk Code Test
+        run: snyk code test --sarif-file-output=snyk-code.sarif
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # 2. Escaneo de Dependencias (SCA) - Analiza tus package.json
+      # Lo ejecutamos en la raíz para que detecte todos los proyectos
+      - name: Snyk Open Source Test
+        run: snyk test --all-projects
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # 3. Escaneo de Infraestructura (IaC) - Revisa tu Docker Compose
+      - name: Snyk IaC Test
+        run: snyk iac test deployment/stack-crm-opensource/docker-compose.yml
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

@@ -52,8 +52,8 @@ Colección de máquinas vulnerables de [DockerLabs](https://dockerlabs.es/)
 
 #### Psycho Series
 ##### `Psycho/`
-[![Difficulty](https://img.shields.io/badge/Difficulty-Hard-red)](Psycho/)
-[![Platform](https://img.shields.io/badge/Platform-VulnHub-orange)](Psycho/)
+[![Difficulty](https://img.shields.io/badge/Difficulty-Hard-red)](Psycho/write-up.md)
+[![Platform](https://img.shields.io/badge/Platform-VulnHub-orange)](Psycho/write-up.md)
 
 **Psycho - Máquina Hard**
 - 🎯 **Dificultad**: Difícil
@@ -120,9 +120,9 @@ Cada write-up sigue una estructura consistente:
 ## 📊 Estadísticas
 
 ### 📈 Progreso General
-- ✅ **Máquinas resueltas**: 3
+- ✅ **Máquinas resueltas**: 2
 - 🎯 **Plataformas**: DockerLabs, VulnHub
-- 📊 **Dificultades**: Easy (1), Medium (1), Hard (1)
+- 📊 **Dificultades**: Easy (1), Medium (1), Hard (⏳ en progreso)
 - ⏱️ **Tiempo promedio**: ~2 horas por máquina
 
 ### 🏆 Logros

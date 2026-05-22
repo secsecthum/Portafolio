@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # El "Cerebro" del laboratorio (Dashboard)
+  lab-dashboard:
+    image: nginx:alpine
+    container_name: secsecthum-dashboard
+    ports:
+      - "80:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html
+    networks:
+      - lab-net
+
+  # Objetivo de práctica: Aplicación vulnerable
+  vulnerable-target:
+    image: bkimminich/juice-shop
+    container_name: victim-app
+    ports:
+      - "3000:3000"
+    networks:
+      - lab-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Herramienta de escaneo básica integrada
+  local-scanner:
+    image: alpine
+    container_name: lab-scanner
+    command: sleep infinity
+    networks:
+      - lab-net
+
+networks:
+  lab-net:
+    driver: bridge

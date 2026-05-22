@@ -3,3 +3,4 @@
 acme.json
 node_modules/
 *.log
+dockerfile-projects/
